@@ -11,6 +11,10 @@
             align-items: center;
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
         }
 
         .controls {
@@ -34,6 +38,7 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             max-width: 100%;
             height: auto;
+            touch-action: none;
         }
 
         button {
@@ -56,6 +61,7 @@
             width: 100%;
             max-width: 100vw;
             overflow: hidden;
+            touch-action: none;
         }
 
         .resize-handle {
@@ -249,7 +255,7 @@
             isResizing = false;
         });
 
-        // 添加載入圖片的功能
+        // 加載入圖片的功能
         loadImageBtn.addEventListener('click', () => {
             imageLoader.click();
         });
@@ -290,33 +296,48 @@
             reader.readAsDataURL(e.target.files[0]);
         });
 
-        // 添加觸控繪圖支援
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', handleTouchEnd);
-
+        // 修改觸控繪圖相關的函數
         function handleTouchStart(e) {
             e.preventDefault();
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
             isDrawing = true;
             [lastX, lastY] = [
-                touch.clientX - rect.left,
-                touch.clientY - rect.top
+                (touch.clientX - rect.left) * scaleX,
+                (touch.clientY - rect.top) * scaleY
             ];
         }
 
         function handleTouchMove(e) {
             e.preventDefault();
+            e.stopPropagation();
             if (!isDrawing) return;
+            
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
             
             ctx.beginPath();
             ctx.moveTo(lastX, lastY);
             ctx.lineTo(x, y);
+            
+            if (isEraser) {
+                ctx.strokeStyle = 'white';
+                ctx.globalCompositeOperation = 'destination-out';
+            } else {
+                ctx.strokeStyle = colorPicker.value;
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            
+            ctx.lineWidth = brushSize.value;
+            ctx.lineCap = 'round';
             ctx.stroke();
             
             [lastX, lastY] = [x, y];
@@ -325,6 +346,11 @@
         function handleTouchEnd() {
             isDrawing = false;
         }
+
+        // 添加事件監聽器
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd);
     </script>
 </body>
 </html>

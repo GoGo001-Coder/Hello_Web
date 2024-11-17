@@ -14,14 +14,17 @@
         }
 
         .controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
             width: 100%;
-            max-width: 800px;
-            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.9);
             padding: 10px;
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            box-sizing: border-box;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            z-index: 1000;
         }
 
         canvas {
@@ -48,8 +51,11 @@
         }
 
         .canvas-container {
-            position: relative;
-            display: inline-block;
+            margin-top: 60px;
+            margin-bottom: 80px;
+            width: 100%;
+            max-width: 100vw;
+            overflow: hidden;
         }
 
         .resize-handle {
@@ -283,6 +289,42 @@
             }
             reader.readAsDataURL(e.target.files[0]);
         });
+
+        // 添加觸控繪圖支援
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd);
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            isDrawing = true;
+            [lastX, lastY] = [
+                touch.clientX - rect.left,
+                touch.clientY - rect.top
+            ];
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            
+            [lastX, lastY] = [x, y];
+        }
+
+        function handleTouchEnd() {
+            isDrawing = false;
+        }
     </script>
 </body>
 </html>

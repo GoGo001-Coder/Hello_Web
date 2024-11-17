@@ -152,6 +152,8 @@
         let isResizing = false;
         const loadImageBtn = document.getElementById('loadImageBtn');
         const imageLoader = document.getElementById('imageLoader');
+        let scale = 1;
+        let startDistance = 0;
 
         // 設定初始畫布背景為白色
         ctx.fillStyle = 'white';
@@ -348,9 +350,91 @@
         }
 
         // 添加事件監聽器
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', handleTouchEnd);
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                handleTouchStart(e);
+            } else if (e.touches.length === 2) {
+                handlePinchStart(e);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1) {
+                handleTouchMove(e);
+            } else if (e.touches.length === 2) {
+                handlePinchMove(e);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                handleTouchEnd();
+            }
+            handlePinchEnd();
+        });
+
+        // 添加以下函數來處理縮放
+        function handlePinchStart(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                // 計算兩指之間的初始距離
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                startDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+            }
+        }
+
+        function handlePinchMove(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                // 計算新的距離
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const newDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+
+                // 計算縮放比例的變化
+                if (startDistance > 0) {
+                    const deltaScale = newDistance / startDistance;
+                    const newScale = scale * deltaScale;
+                    
+                    // 限制縮放範圍
+                    if (newScale >= 0.5 && newScale <= 3) {
+                        // 保存當前畫布內容
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = canvas.width;
+                        tempCanvas.height = canvas.height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.drawImage(canvas, 0, 0);
+
+                        // 調整畫布大小
+                        canvas.width = canvas.width * deltaScale;
+                        canvas.height = canvas.height * deltaScale;
+
+                        // 清除並重繪內容
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+
+                        // 更新縮放比例
+                        scale = newScale;
+                        startDistance = newDistance;
+
+                        // 調整筆刷大小
+                        ctx.lineWidth = brushSize.value * scale;
+                    }
+                }
+            }
+        }
+
+        function handlePinchEnd() {
+            startDistance = 0;
+        }
     </script>
 </body>
 </html>
